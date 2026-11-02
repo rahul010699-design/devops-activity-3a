@@ -1,4 +1,4 @@
-
+﻿
 name: Secure CI Pipeline
 
 on:
@@ -132,3 +132,4 @@ jobs:
           severity: HIGH,CRITICAL
           ignore-unfixed: true
           exit-code: "1"
+
