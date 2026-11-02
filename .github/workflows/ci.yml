@@ -102,10 +102,9 @@ jobs:
           push: false
           cache-from: type=gha
           cache-to: type=gha,mode=max
-
       - name: Scan container with Trivy
-uses: aquasecurity/trivy-action@master
-        with:
+        uses: aquasecurity/trivy-action@master
+           with:
           image-ref: activity-3a-api:${{ github.sha }}
           scan-type: image
           scanners: vuln
