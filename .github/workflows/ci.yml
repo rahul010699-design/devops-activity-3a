@@ -124,7 +124,7 @@ uses: aquasecurity/trivy-action@master
           if-no-files-found: warn
 
       - name: Enforce actionable OS vulnerability gate
-        uses: aquasecurity/trivy-action@0.33.1
+        uses: aquasecurity/trivy-action@master
         with:
           image-ref: activity-3a-api:${{ github.sha }}
           scan-type: image
