@@ -241,11 +241,9 @@ jobs:
           echo "Testing: $REVISION_URL"
 
           HEALTHY=false
-          IDENTITY_TOKEN="$(gcloud auth print-identity-token --audiences="$SERVICE_URL")"
 
           for attempt in $(seq 1 12); do
-            if curl --fail --silent --show-error \
-              -H "Authorization: Bearer ${IDENTITY_TOKEN}" \
+                       if curl --fail --silent --show-error \
               "${REVISION_URL%/}/health"; then
               HEALTHY=true
               break
