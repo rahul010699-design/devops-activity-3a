@@ -1,0 +1,5 @@
+﻿fastapi==0.162.0
+uvicorn[standard]==0.54.0
+SQLAlchemy==2.0.48
+msgpack==1.2.3
+urllib3==2.8.0

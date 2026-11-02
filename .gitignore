@@ -1,0 +1,28 @@
+﻿# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Secrets and environment files
+.env
+.env.*
+!.env.example
+
+# Local databases
+*.db
+
+# Terraform state and plans
+*.tfstate
+*.tfstate.*
+*.tfplan
+.terraform/
+
+# Local security scan outputs
+trivy-report.json
+trivy-sbom.json
+trivy-os-report.json
+trivy-os-actionable-report.json
