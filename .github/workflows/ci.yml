@@ -1,4 +1,4 @@
-﻿
+
 name: Secure CI Pipeline
 
 on:
@@ -176,7 +176,23 @@ jobs:
           docker build --pull -t "$IMAGE" .
           docker push "$IMAGE"
 
-      - name: Deploy to Cloud Run
+      - name: Capture previous Cloud Run revision
+        id: previous
+        run: |
+          PREVIOUS_REVISION="$(gcloud run services describe "$SERVICE" \
+            --project="$PROJECT_ID" \
+            --region="$REGION" \
+            --format='value(status.traffic[0].revisionName)')"
+
+          if [ -z "$PREVIOUS_REVISION" ]; then
+            echo "No previous traffic revision found."
+            exit 1
+          fi
+
+          echo "previous_revision=$PREVIOUS_REVISION" >> "$GITHUB_OUTPUT"
+          echo "Previous revision: $PREVIOUS_REVISION"
+
+      - name: Deploy new revision without traffic
         env:
           IMAGE: ${{ vars.GCP_REGION }}-docker.pkg.dev/${{ vars.GCP_PROJECT_ID }}/${{ vars.GAR_REPOSITORY }}/api:${{ github.sha }}
         run: |
@@ -187,31 +203,78 @@ jobs:
             --service-account="activity-3a-run@${PROJECT_ID}.iam.gserviceaccount.com" \
             --port=8080 \
             --max=2 \
+            --tag=smoke \
+            --no-traffic \
             --quiet
 
-
-      - name: Post-deployment health check
+      - name: Smoke test and automatic rollback
+        env:
+          PREVIOUS_REVISION: ${{ steps.previous.outputs.previous_revision }}
         run: |
+          NEW_REVISION="$(gcloud run services describe "$SERVICE" \
+            --project="$PROJECT_ID" \
+            --region="$REGION" \
+            --format='value(status.latestCreatedRevisionName)')"
+
+          if [ -z "$NEW_REVISION" ]; then
+            echo "Could not identify the new revision."
+            exit 1
+          fi
+
+          REVISION_URL="$(gcloud run services describe "$SERVICE" \
+            --project="$PROJECT_ID" \
+            --region="$REGION" \
+            --format=json | jq -r '.status.traffic[] | select(.tag == "smoke") | (.url // .uri // empty)')"
+
           SERVICE_URL="$(gcloud run services describe "$SERVICE" \
             --project="$PROJECT_ID" \
             --region="$REGION" \
             --format='value(status.url)')"
 
-          if [ -z "$SERVICE_URL" ]; then
-            echo "Could not retrieve the Cloud Run service URL."
+          if [ -z "$REVISION_URL" ] || [ -z "$SERVICE_URL" ]; then
+            echo "Could not retrieve the smoke-test or service URL."
             exit 1
           fi
 
+          echo "Previous revision: $PREVIOUS_REVISION"
+          echo "New revision: $NEW_REVISION"
+          echo "Testing: $REVISION_URL"
+
+          HEALTHY=false
+          IDENTITY_TOKEN="$(gcloud auth print-identity-token --audiences="$SERVICE_URL")"
+
           for attempt in $(seq 1 12); do
             if curl --fail --silent --show-error \
-              "${SERVICE_URL%/}/health"; then
-              echo "Health check passed."
-              exit 0
+              -H "Authorization: Bearer ${IDENTITY_TOKEN}" \
+              "${REVISION_URL%/}/health"; then
+              HEALTHY=true
+              break
             fi
 
-            echo "Health check attempt $attempt failed; retrying..."
+            echo "Health check attempt $attempt failed."
             sleep 5
           done
 
-          echo "Health check failed after retries."
-          exit 1
+          if [ "$HEALTHY" = "true" ]; then
+            echo "New revision passed health checks."
+
+            gcloud run services update-traffic "$SERVICE" \
+              --project="$PROJECT_ID" \
+              --region="$REGION" \
+              --to-revisions="${NEW_REVISION}=100" \
+              --quiet
+
+            echo "100% traffic routed to $NEW_REVISION."
+          else
+            echo "New revision failed health checks."
+            echo "Rolling back to $PREVIOUS_REVISION."
+
+            gcloud run services update-traffic "$SERVICE" \
+              --project="$PROJECT_ID" \
+              --region="$REGION" \
+              --to-revisions="${PREVIOUS_REVISION}=100" \
+              --quiet
+
+            echo "Traffic restored to $PREVIOUS_REVISION."
+            exit 1
+          fi
