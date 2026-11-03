@@ -207,7 +207,7 @@ jobs:
             --no-traffic \
             --quiet
 
-      -
+      
       - name: Smoke test and automatic rollback
         env:
           PREVIOUS_REVISION: ${{ steps.previous.outputs.previous_revision }}
