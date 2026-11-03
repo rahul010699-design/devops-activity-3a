@@ -207,6 +207,7 @@ jobs:
             --no-traffic \
             --quiet
 
+      -
       - name: Smoke test and automatic rollback
         env:
           PREVIOUS_REVISION: ${{ steps.previous.outputs.previous_revision }}
@@ -243,7 +244,7 @@ jobs:
           HEALTHY=false
 
           for attempt in $(seq 1 12); do
-                       if curl --fail --silent --show-error \
+            if curl --fail --silent --show-error \
               "${REVISION_URL%/}/health"; then
               HEALTHY=true
               break
