@@ -300,8 +300,11 @@ jobs:
             -t "$CLOUD_RUN_URL/docs" \
             -m 1 \
             -I \
-            -r zap-baseline-report.html \
-            -J zap-baseline-report.json
+            -r /zap/wrk/zap-baseline-report.html \
+            -J /zap/wrk/zap-baseline-report.json
+
+          echo "Generated ZAP reports:"
+          ls -lh zap-reports/
 
       - name: Upload ZAP reports
         if: always()
@@ -310,4 +313,3 @@ jobs:
           name: zap-baseline-reports
           path: zap-reports/zap-baseline-report.*
           if-no-files-found: warn
-          
