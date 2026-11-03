@@ -86,7 +86,14 @@ app = FastAPI(
     version="1.0.0",
     lifespan=lifespan,
 )
-
+@app.get("/")
+def root():
+    return {
+        "message": "DevOps Activity 3A - Secure CI/CD API",
+        "status": "running",
+        "docs": "/docs",
+        "health": "/health"
+    }
 
 @app.get("/health")
 def health_check():
