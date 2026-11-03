@@ -26,3 +26,9 @@ trivy-report.json
 trivy-sbom.json
 trivy-os-report.json
 trivy-os-actionable-report.json
+# Local project evidence
+Activity-3A-Evidence/
+
+# Generated OWASP ZAP reports
+zap-baseline-report.html
+zap-baseline-report.json
